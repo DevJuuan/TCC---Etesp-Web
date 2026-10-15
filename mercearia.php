@@ -464,7 +464,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <span class="etiqueta">Limpeza</span>
             <div class="produto__marca">Comfort</div>
           </div>
-          <img class="produto__imagem" src="imagens/Mercearia/Amaciante-Comfort.avif" alt="Amaciante Comfort 500ml" />
+          <img class="produto__imagem" src="imagens/Mercearia/Amaciante-Comfort.webp" alt="Amaciante Comfort 500ml" />
           <h3 class="produto__nome">Amaciante 500ml</h3>
           <p class="produto__descricao">Roupas macias e perfumadas</p>
           <div class="produto__linha-preco">

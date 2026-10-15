@@ -96,7 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     }
 }
 
-// Cancelamento de pedido
+// Cancelamento de pedido: devolve ao estoque os produtos do pedido
+// dentro da mesma transação, impedindo devolução duplicada.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'cancelar_pedido') {
 
     if (empty($_SESSION['logado'])) {
@@ -110,15 +111,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'cancela
 
     if (
         empty($csrf_recebido) ||
+        empty($_SESSION['csrf_token']) ||
         !hash_equals($_SESSION['csrf_token'], $csrf_recebido)
     ) {
         $mensagem_perfil = "Não foi possível validar a solicitação de cancelamento.";
     } elseif ($id_cliente_cancelamento <= 0 || $id_pedido_cancelamento <= 0) {
         $mensagem_perfil = "Pedido inválido.";
     } else {
+        $pdo = null;
+
         try {
             $pdo = conectar();
+            $pdo->beginTransaction();
 
+            // Bloqueia o pedido enquanto verifica o status, para impedir
+            // que duas solicitações cancelem e devolvam o estoque ao mesmo tempo.
+            $sqlPedido = $pdo->prepare(
+                "SELECT Status_Pedido
+                 FROM Pedido WITH (UPDLOCK, HOLDLOCK)
+                 WHERE Id_Pedido = :id_pedido
+                   AND Id_Cliente = :id_cliente"
+            );
+            $sqlPedido->bindValue(":id_pedido", $id_pedido_cancelamento, PDO::PARAM_INT);
+            $sqlPedido->bindValue(":id_cliente", $id_cliente_cancelamento, PDO::PARAM_INT);
+            $sqlPedido->execute();
+            $pedido = $sqlPedido->fetch(PDO::FETCH_ASSOC);
+
+            if (!$pedido) {
+                throw new RuntimeException("Pedido não encontrado.");
+            }
+
+            if (strcasecmp(trim((string) $pedido['Status_Pedido']), 'Iniciado') !== 0) {
+                throw new RuntimeException("Este pedido não pode ser cancelado. Ele já foi processado ou cancelado.");
+            }
+
+            // Recupera os produtos e as quantidades registradas no pedido.
+            $sqlItens = $pdo->prepare(
+                "SELECT Id_Produto, Quantidade
+                 FROM Pedido_Item
+                 WHERE Id_Pedido = :id_pedido"
+            );
+            $sqlItens->bindValue(":id_pedido", $id_pedido_cancelamento, PDO::PARAM_INT);
+            $sqlItens->execute();
+            $itensPedidoCancelado = $sqlItens->fetchAll(PDO::FETCH_ASSOC);
+
+            if (count($itensPedidoCancelado) === 0) {
+                throw new RuntimeException("Não foi possível cancelar: o pedido não possui itens registrados.");
+            }
+
+            // Devolve ao estoque cada quantidade comprada.
+            $sqlDevolverEstoque = $pdo->prepare(
+                "UPDATE Produto
+                 SET Qtnd = ISNULL(Qtnd, 0) + :quantidade
+                 WHERE Id_Produto = :id_produto"
+            );
+
+            foreach ($itensPedidoCancelado as $itemCancelado) {
+                $quantidadeDevolver = (int) $itemCancelado['Quantidade'];
+                $idProdutoDevolver = (int) $itemCancelado['Id_Produto'];
+
+                if ($quantidadeDevolver <= 0) {
+                    throw new RuntimeException("Quantidade inválida encontrada nos itens do pedido.");
+                }
+
+                $sqlDevolverEstoque->bindValue(":quantidade", $quantidadeDevolver, PDO::PARAM_INT);
+                $sqlDevolverEstoque->bindValue(":id_produto", $idProdutoDevolver, PDO::PARAM_INT);
+                $sqlDevolverEstoque->execute();
+
+                if ($sqlDevolverEstoque->rowCount() !== 1) {
+                    throw new RuntimeException("Não foi possível devolver ao estoque um dos produtos do pedido.");
+                }
+            }
+
+            // Só marca como cancelado depois de devolver os itens.
             $sqlCancelar = $pdo->prepare(
                 "UPDATE Pedido
                  SET Status_Pedido = :novo_status
@@ -126,24 +191,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'cancela
                    AND Id_Cliente = :id_cliente
                    AND Status_Pedido = :status_atual"
             );
-
             $sqlCancelar->bindValue(":novo_status", "Cancelado");
             $sqlCancelar->bindValue(":id_pedido", $id_pedido_cancelamento, PDO::PARAM_INT);
             $sqlCancelar->bindValue(":id_cliente", $id_cliente_cancelamento, PDO::PARAM_INT);
             $sqlCancelar->bindValue(":status_atual", "Iniciado");
             $sqlCancelar->execute();
 
-            if ($sqlCancelar->rowCount() > 0) {
-                $mensagem_perfil = "Pedido cancelado com sucesso.";
-            } else {
-                $mensagem_perfil = "Este pedido não pode ser cancelado.";
+            if ($sqlCancelar->rowCount() !== 1) {
+                throw new RuntimeException("O pedido não pôde ser marcado como cancelado.");
             }
 
-        } catch (Exception $erro) {
-            $mensagem_perfil = "Erro ao cancelar o pedido: " . $erro->getMessage();
+            $pdo->commit();
+            $mensagem_perfil = "Pedido cancelado com sucesso.";
+
+        } catch (Throwable $erro) {
+            if ($pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            // Mostra mensagens esperadas de validação; erros técnicos ficam no log.
+            if ($erro instanceof RuntimeException) {
+                $mensagem_perfil = $erro->getMessage();
+            } else {
+                error_log("Erro ao cancelar pedido {$id_pedido_cancelamento}: " . $erro->getMessage());
+                $mensagem_perfil = "Ocorreu um erro ao cancelar o pedido. Nenhuma alteração foi mantida.";
+            }
         }
     }
 }
+
 
 // Recebe os dados de cadastro.
 // O formulário de registro não envia o campo "acao".
@@ -402,6 +478,14 @@ try {
             color: var(--texto2);
         }
 
+        .perfil__menu-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
         .perfil__menu-btn {
             width: 100%;
             border: 0;
@@ -435,6 +519,21 @@ try {
 
         .perfil__painel.ativo {
             display: block;
+        }
+
+        .perfil__relatorio-wrapper {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        .perfil__relatorio-iframe {
+            display: block;
+            width: 100%;
+            min-height: 900px;
+            height: 1100px;
+            border: 0;
+            background: #ffffff;
         }
 
         @media (max-width: 800px) {
@@ -584,6 +683,10 @@ try {
 
                 <button type="button" class="perfil__menu-btn" data-painel="historico">
                     Histórico de Compras
+                </button>
+
+                <button type="button" class="perfil__menu-btn" data-painel="relatorio">
+                    Relatório do Mês (PDF)
                 </button>
             </aside>
 
@@ -812,6 +915,21 @@ try {
                 <?php } else { ?>
                     <p class="carrinho__vazio">Você ainda não realizou nenhuma compra.</p>
                 <?php } ?>
+            </div>
+
+            <!-- Painel do relatório mensal -->
+            <div id="painel-relatorio" class="filtro perfil__card perfil__painel">
+                <div class="perfil__cabecalho">
+                    <h2 class="filtro__titulo">Relatório do Mês</h2>
+                </div>
+
+                <div class="perfil__relatorio-wrapper">
+                    <iframe
+                        class="perfil__relatorio-iframe"
+                        src="relatorio_compras.php"
+                        title="Relatório de compras do mês">
+                    </iframe>
+                </div>
             </div>
 
         </section>

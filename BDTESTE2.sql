@@ -174,3 +174,106 @@ SELECT * FROM Pedido_Item;
 
 
 INSERT INTO Funcionario VALUES (1, 'Admin', 'Administrador', 11111111111, 1, 1234);
+
+SELECT TOP 5 Id_Pedido, Id_Cliente, Data_Pedido, Status_Pedido, Valor_Total
+FROM Pedido ORDER BY Id_Pedido DESC;
+
+SELECT Id_Cliente, Nome, Email FROM Cliente;
+
+CREATE TABLE Produto_Imagem (
+    Id_Produto INT PRIMARY KEY,                    -- um produto tem no máximo uma imagem
+    Arquivo VARCHAR(200) NOT NULL,                 -- nome do arquivo na pasta imagens (ex.: cafe-pele.jpg)
+    FOREIGN KEY (Id_Produto) REFERENCES Produto(Id_Produto) ON DELETE CASCADE
+);
+-- ON DELETE CASCADE: se o desktop ou o site apagar um produto, a linha da imagem some junto
+-- (sem isso, apagar um produto com imagem daria erro)
+
+-- Exemplo de preenchimento (um INSERT por produto):
+-- INSERT INTO Produto_Imagem (Id_Produto, Arquivo) VALUES (1, 'cafe-pele.jpg');
+
+-- Para ver os Ids dos produtos:
+SELECT Id_Produto, Nome, Marca FROM Produto ORDER BY Id_Produto;
+
+SELECT Id_Produto, Nome, Marca, Id_Categoria,
+       CASE WHEN Id_Categoria <= 7 THEN 'mercearia' ELSE 'drogaria' END AS Pasta
+FROM Produto
+ORDER BY Id_Produto;
+
+INSERT INTO Produto_Imagem (Id_Produto, Arquivo)
+SELECT p.Id_Produto, v.Arquivo
+FROM (VALUES
+    -- ===== MERCEARIA =====
+    ('Café Torrado 500g', 'Café Pelé', 'mercearia/cafe-pele.webp'),
+    ('Arroz Tipo 1 5kg', 'Camil', 'mercearia/arroz-camil.jpg'),
+    ('Feijão Carioca 1kg', 'Kicaldo', 'mercearia/feijao-kicaldo.webp'),
+    ('Açúcar Refinado 1kg', 'União', 'mercearia/acucar-uniao.jpg'),
+    ('Macarrão Espaguete 500g', 'Adria', 'mercearia/macarrao-espaguete-adria.jpg'),
+    ('Leite Integral 1L', 'Parmalat', 'mercearia/Leite-integral.jpg'),
+    ('Iogurte Natural 170g', 'Vigor', 'mercearia/iogurte-natural.webp'),
+    ('Queijo Mussarela 300g', 'Président', 'mercearia/Queijo-mussarela.webp'),
+    ('Banana Prata kg', 'Frutas', 'mercearia/banana-prata.png'),
+    ('Tomate Italiano kg', 'Frutas', 'mercearia/Tomate-italiano.webp'),
+    ('Alface Crespa Unidade', 'Verduras', 'mercearia/Alface-Crespa.png'),
+    ('Frango em Cubos 400g', 'Sadia', 'mercearia/Frango-Cubos.png'),
+    ('Peixe Tilápia Filé 500g', 'Peixaria', 'mercearia/file-tilapia.png'),
+    ('Patinho Moído 500g', 'Açougue', 'mercearia/Patinho-moido.png'),
+    ('Detergente Neutro 500ml', 'Ype', 'mercearia/Detergente-Neutro-Ype.jpg'),
+    ('Sabão em Pó 1kg', 'Omo', 'mercearia/Sabao-Omo.webp'),
+    ('Álcool 70 1L', 'Asfer', 'mercearia/Alcool-70-Asfer.webp'),
+    ('Sal Refinado 1Kg', 'Cisne', 'mercearia/Sal-Cisne.webp'),
+    ('Alho Kg', 'Temperos', 'mercearia/alho.jpg'),
+    ('Margarina 1 Kg', 'Qualy', 'mercearia/Margarina-Qualy.webp'),
+    ('Palha de Aço', 'Bombril', 'mercearia/Palha-Bombril.png'),
+    ('Amaciante 500ml', 'Comfort', 'mercearia/Amaciante-Comfort.webp'),   -- veja a observação sobre .avif abaixo
+    ('Nuggets de Frango 275g', 'Sadia', 'mercearia/Nuggets-Sadia.webp'),
+    ('Bacon em Fatias 250g', 'Seara', 'mercearia/Bacon-seara.png'),
+    ('Refrigerante Cola 2L', 'Coca-Cola', 'mercearia/Coca-Cola-2l.webp'),
+    ('Refrigerante Guaraná 2L', 'Guaraná Antarctica', 'mercearia/Guarana-Antartica-2l.webp'),
+    ('Suco de Maracujá 1L', 'Del Valle', 'mercearia/Delvalle-Maracuja.webp'),
+    ('Biscoito Recheado 90g', 'Oreo', 'mercearia/Bisc-Oreo.jpg'),
+    ('Cookie Chocolate', 'Toddy', 'mercearia/Cookie-Toddy.webp'),
+    ('Salgadinho de Milho 32g', 'Doritos', 'mercearia/Salg-Doritos.jpg'),
+    ('Energético 473ml', 'Monster', 'mercearia/Energetico-Monster.webp'),
+    ('Cenoura kg', 'Legumes', 'mercearia/Cenoura.jpg'),
+    ('Molho de Tomate 300g', 'Pomarola', 'mercearia/Molho-Tomate-Pomarola.png'),
+    ('Bala de Gelatina 100g', 'Fini', 'mercearia/Bala-fini.webp'),
+    ('Limpador Multiuso 500ml', 'Veja', 'mercearia/Limpador-veja.webp'),
+    ('Requeijão Cremoso 200g', 'Catupiry', 'mercearia/Requeijao-catupiry.webp'),
+    ('Linguiça Toscana 700g', 'Seara', 'mercearia/linguica-toscana-seara.webp'),
+    ('Óleo de Soja 900ml', 'Liza', 'mercearia/oleo-liza.jpg'),
+    ('Maçã Fuji kg', 'Frutas', 'mercearia/maca-fuji.webp'),
+    ('Chocolate ao Leite 90g', 'Lacta', 'mercearia/Chocolate-Lacta.webp'),
+    ('Água Mineral 1,5L', 'Crystal', 'mercearia/agua-crystal.webp'),
+    ('Filé de Frango 1kg', 'Perdigão', 'mercearia/File-Frango-Perdigao.webp'),
+    ('Cream Cheese 150g', 'Philadelphia', 'mercearia/Cream-Cheese-Philadelphia.webp'),
+    ('Farinha de Trigo 1kg', 'Dona Benta', 'mercearia/Farinha-Dona-Benta.webp'),
+    ('Desinfetante 1L', 'Pinho Sol', 'mercearia/Desinfetante-Pinho-Sol.webp'),
+    ('Whisky Combo Maçã Verde', 'Mansão Maromba', 'mercearia/Whisk-Energetico.jpg'),
+    ('Batata Inglesa kg', 'Legumes', 'mercearia/Batata-Inglesa.webp'),
+    -- ===== DROGARIA =====
+    ('Termômetro Digital', 'G-Tech', 'drogaria/termometro.webp'),
+    ('Creme Dental 90g', 'Colgate', 'drogaria/Creme-Dental-Colgate.webp'),
+    ('Sabonete Dove 90g', 'Dove', 'drogaria/Sabonete-Dove.jpg'),
+    ('Condicionador 400ml', 'Pantene', 'drogaria/Condicionador-Pantene.webp'),
+    ('Dipirona Monoidratada 1g', 'Prati', 'drogaria/dipirona.webp'),
+    ('Soro Fisiológico 500ml', 'Farmax', 'drogaria/Soro-Farmax.jpg'),
+    ('Protetor Solar FPS 50 120ml', 'Neutrogena', 'drogaria/Protetor-solar-neutrogena.webp'),
+    ('Desodorante Aerosol 150ml', 'Rexona', 'drogaria/Desodorante-Rexona.jpg'),
+    ('Curativo 40 Unidades', 'Band-Aid', 'drogaria/Band-aid.webp'),
+    ('Antigripal 10 Cápsulas', 'Cimegripe', 'drogaria/cimegripe.png'),
+    ('Creme de Pentear 300ml', 'Seda', 'drogaria/Creme-Pentear-Seda.webp'),
+    ('Máscara Descartável 10 Unidades', 'Ever Care', 'drogaria/Mascara-Descartavel.png'),
+    ('Enxaguante Bucal 250ml', 'Listerine', 'drogaria/Antisseptico-bucal-listerine.webp'),
+    ('Álcool em Gel 70% 500ml', 'Asseptgel', 'drogaria/alcool-gel-asseptgel.webp'),
+    ('Algodão Hidrófilo 50g', 'Apolo', 'drogaria/algodao-apolo.webp'),
+    ('Shampoo 300ml', 'Salon Line', 'drogaria/Shampoo-salon-line.png'),
+    ('Creme Hidratante 200ml', 'Nivea', 'drogaria/Locao-Hidratante-Corporal-Nivea.webp'),
+    ('Escova Dental Macia', 'Oral-B', 'drogaria/escova-dental-oralb.webp'),
+    ('Repelente Spray 100ml', 'SBP', 'drogaria/Repelente-Sbp.webp')
+) AS v(Nome, Marca, Arquivo)
+INNER JOIN Produto p ON p.Nome = v.Nome AND p.Marca = v.Marca;
+
+SELECT p.Id_Produto, p.Nome, p.Marca
+FROM Produto p
+LEFT JOIN Produto_Imagem i ON i.Id_Produto = p.Id_Produto
+WHERE i.Id_Produto IS NULL;

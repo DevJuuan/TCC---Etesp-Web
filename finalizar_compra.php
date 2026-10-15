@@ -12,6 +12,8 @@ function responder(int $status, array $dados): void
     exit;
 }
 
+class EstoqueInsuficienteException extends RuntimeException {}
+
 function conectar(): PDO
 {
     $local_server = "DESKTOP-54EB1G4\\SQLEXPRESS";
@@ -55,7 +57,7 @@ try {
     $pdo->beginTransaction();
 
     $buscarProduto = $pdo->prepare(
-        "SELECT Id_Produto, Nome, Marca, Preco
+        "SELECT Id_Produto, Nome, Marca, Preco, Qtnd
          FROM Produto
          WHERE Nome = :nome AND Marca = :marca"
     );
@@ -82,14 +84,45 @@ try {
             throw new RuntimeException("Produto não encontrado no banco: {$nome} ({$marca}).");
         }
 
+        $estoqueDisponivel = (int) ($produto['Qtnd'] ?? 0);
+        if ($quantidade > $estoqueDisponivel) {
+            throw new EstoqueInsuficienteException(
+                "Estoque insuficiente para {$nome} ({$marca}). Disponível: {$estoqueDisponivel}; solicitado: {$quantidade}."
+            );
+        }
+
         $precoUnitario = (float) $produto['Preco'];
         $valorTotal += $precoUnitario * $quantidade;
 
         $itensValidados[] = [
             'id_produto' => (int) $produto['Id_Produto'],
+            'nome' => $nome,
+            'marca' => $marca,
             'quantidade' => $quantidade,
             'preco_unitario' => $precoUnitario,
         ];
+    }
+
+    // Baixa o estoque com uma condição atômica para impedir estoque negativo,
+    // inclusive se duas compras ocorrerem quase ao mesmo tempo.
+    $baixarEstoque = $pdo->prepare(
+        "UPDATE Produto
+         SET Qtnd = Qtnd - :quantidade
+         WHERE Id_Produto = :id_produto AND Qtnd >= :quantidade_condicao"
+    );
+
+    foreach ($itensValidados as $item) {
+        $baixarEstoque->execute([
+            ':quantidade' => $item['quantidade'],
+            ':id_produto' => $item['id_produto'],
+            ':quantidade_condicao' => $item['quantidade'],
+        ]);
+
+        if ($baixarEstoque->rowCount() !== 1) {
+            throw new EstoqueInsuficienteException(
+                "O estoque de {$item['nome']} ({$item['marca']}) mudou durante a compra. Atualize o carrinho e tente novamente."
+            );
+        }
     }
 
     // OUTPUT INSERTED é a forma mais segura de obter o IDENTITY recém-criado no SQL Server.
@@ -130,6 +163,15 @@ try {
         'mensagem' => 'Compra finalizada com sucesso!',
         'id_pedido' => $idPedido,
         'valor_total' => number_format($valorTotal, 2, '.', ''),
+    ]);
+} catch (EstoqueInsuficienteException $erro) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    responder(409, [
+        'sucesso' => false,
+        'mensagem' => $erro->getMessage(),
     ]);
 } catch (Throwable $erro) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
