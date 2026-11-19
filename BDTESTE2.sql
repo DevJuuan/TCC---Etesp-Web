@@ -2,8 +2,6 @@ CREATE DATABASE SUPERCLICK
 
 USE SUPERCLICK
 
-USE master
-
 CREATE TABLE Cliente (
     Id_Cliente INT PRIMARY KEY IDENTITY(1,1),
     Nome VARCHAR(100),
@@ -162,42 +160,11 @@ VALUES
     ('Repelente Spray 100ml','SBP', 15.99, 7, 'Ajuda na proteção contra insetos', 13);
 
 
-
-
-SELECT * FROM Cliente;
-SELECT * FROM Contato;
-SELECT * FROM Produto;
-SELECT * FROM Funcionario;
-SELECT * FROM Categoria;
-SELECT * FROM Pedido;
-SELECT * FROM Pedido_Item;
-
-
-INSERT INTO Funcionario VALUES (1, 'Admin', 'Administrador', 11111111111, 1, 1234);
-
-SELECT TOP 5 Id_Pedido, Id_Cliente, Data_Pedido, Status_Pedido, Valor_Total
-FROM Pedido ORDER BY Id_Pedido DESC;
-
-SELECT Id_Cliente, Nome, Email FROM Cliente;
-
 CREATE TABLE Produto_Imagem (
     Id_Produto INT PRIMARY KEY,                    -- um produto tem no máximo uma imagem
     Arquivo VARCHAR(200) NOT NULL,                 -- nome do arquivo na pasta imagens (ex.: cafe-pele.jpg)
     FOREIGN KEY (Id_Produto) REFERENCES Produto(Id_Produto) ON DELETE CASCADE
 );
--- ON DELETE CASCADE: se o desktop ou o site apagar um produto, a linha da imagem some junto
--- (sem isso, apagar um produto com imagem daria erro)
-
--- Exemplo de preenchimento (um INSERT por produto):
--- INSERT INTO Produto_Imagem (Id_Produto, Arquivo) VALUES (1, 'cafe-pele.jpg');
-
--- Para ver os Ids dos produtos:
-SELECT Id_Produto, Nome, Marca FROM Produto ORDER BY Id_Produto;
-
-SELECT Id_Produto, Nome, Marca, Id_Categoria,
-       CASE WHEN Id_Categoria <= 7 THEN 'mercearia' ELSE 'drogaria' END AS Pasta
-FROM Produto
-ORDER BY Id_Produto;
 
 INSERT INTO Produto_Imagem (Id_Produto, Arquivo)
 SELECT p.Id_Produto, v.Arquivo
@@ -224,7 +191,7 @@ FROM (VALUES
     ('Alho Kg', 'Temperos', 'mercearia/alho.jpg'),
     ('Margarina 1 Kg', 'Qualy', 'mercearia/Margarina-Qualy.webp'),
     ('Palha de Aço', 'Bombril', 'mercearia/Palha-Bombril.png'),
-    ('Amaciante 500ml', 'Comfort', 'mercearia/Amaciante-Comfort.webp'),   -- veja a observação sobre .avif abaixo
+    ('Amaciante 500ml', 'Comfort', 'mercearia/Amaciante-Comfort.webp'),   
     ('Nuggets de Frango 275g', 'Sadia', 'mercearia/Nuggets-Sadia.webp'),
     ('Bacon em Fatias 250g', 'Seara', 'mercearia/Bacon-seara.png'),
     ('Refrigerante Cola 2L', 'Coca-Cola', 'mercearia/Coca-Cola-2l.webp'),
@@ -273,7 +240,12 @@ FROM (VALUES
 ) AS v(Nome, Marca, Arquivo)
 INNER JOIN Produto p ON p.Nome = v.Nome AND p.Marca = v.Marca;
 
-SELECT p.Id_Produto, p.Nome, p.Marca
-FROM Produto p
-LEFT JOIN Produto_Imagem i ON i.Id_Produto = p.Id_Produto
-WHERE i.Id_Produto IS NULL;
+INSERT INTO Funcionario VALUES (1, 'Admin', 'Administrador', 11111111111, 1, 1234); --Importante
+
+SELECT * FROM Cliente;
+SELECT * FROM Contato;
+SELECT * FROM Produto;
+SELECT * FROM Funcionario;
+SELECT * FROM Categoria;
+SELECT * FROM Pedido;
+SELECT * FROM Pedido_Item;

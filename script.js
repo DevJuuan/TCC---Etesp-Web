@@ -1,4 +1,7 @@
-//Filtro de busca e categorias
+
+// ==========================================
+// FILTRO DE BUSCA E CATEGORIAS
+// ==========================================
 
 document.addEventListener("DOMContentLoaded", function () {
   const botoes = document.querySelectorAll(".categorias a");
@@ -24,11 +27,12 @@ document.addEventListener("DOMContentLoaded", function () {
       const categoria = card.getAttribute("data-categoria");
       const nome = normalizar(card.querySelector(".produto__nome")?.innerText);
       const marca = normalizar(
-        card.querySelector(".produto__marca")?.innerText,
+        card.querySelector(".produto__marca")?.innerText
       );
 
       const atendeCategoria =
         filtroCategoriaAtual === "Todas" || filtroCategoriaAtual === categoria;
+
       const atendeBusca =
         termo.length === 0 || nome.includes(termo) || marca.includes(termo);
 
@@ -60,17 +64,23 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const todos = document.querySelector('.categorias a[data-filtro="Todas"]');
+
   if (todos) {
     filtroCategoriaAtual = "Todas";
     todos.click();
   }
 });
 
-// Carrinho
+
+// ==========================================
+// CARRINHO
+// ==========================================
+
 let carrinho = [];
 
 function carregarCarrinho() {
   let salvo = localStorage.getItem("meu_carrinho");
+
   if (salvo) {
     try {
       carrinho = JSON.parse(salvo);
@@ -90,15 +100,21 @@ function formatarDinheiro(valor) {
 
 function abrirCarrinho() {
   const overlay = document.getElementById("janela-carrinho");
+
+  if (!overlay) return;
+
   overlay.style.display = "flex";
   overlay.setAttribute("aria-hidden", "false");
   overlay.classList.add("carrinho__overlay--aberto");
+
   desenharCarrinho();
 }
 
 function fecharCarrinho() {
   const overlay = document.getElementById("janela-carrinho");
+
   if (!overlay) return;
+
   overlay.style.display = "none";
   overlay.setAttribute("aria-hidden", "true");
   overlay.classList.remove("carrinho__overlay--aberto");
@@ -110,7 +126,9 @@ function desenharCarrinho() {
   const vazio = document.getElementById("carrinho__vazio");
 
   if (!lista || !textoTotal) return;
+
   lista.innerHTML = "";
+
   if (vazio) vazio.style.display = "none";
 
   let total = 0;
@@ -122,13 +140,14 @@ function desenharCarrinho() {
   for (let i = 0; i < carrinho.length; i++) {
     let item = carrinho[i];
     let subtotal = item.preco * item.quantidade;
+
     total = total + subtotal;
 
     lista.innerHTML += `
       <li style="margin-bottom: 15px;">
         <strong>${item.nome}</strong> (${item.marca}) <br>
         Preço: ${formatarDinheiro(item.preco)} <br>
-        Quantidade: 
+        Quantidade:
         <button onclick="diminuir(${i})"> - </button>
         ${item.quantidade}
         <button onclick="aumentar(${i})"> + </button> <br>
@@ -141,31 +160,39 @@ function desenharCarrinho() {
 }
 
 function adicionarProduto(nome, marca, precoTexto) {
-  // Verifica se o usuário está logado antes de adicionar ao carrinho
+
   if (!window.usuarioLogado) {
     mostrarToast("Faça login para adicionar itens ao carrinho");
+
     setTimeout(() => {
       window.location.href = "login.php";
     }, 1700);
+
     return;
   }
 
-  // Em preços promocionais pode existir mais de um valor (ex.: preço antigo + preço atual).
-  // Usa sempre o último valor em R$, que é o preço efetivamente exibido para compra.
-  const valoresEncontrados = precoTexto.match(/R\$\s*([0-9.]+(?:,[0-9]{2})?)/g) || [];
+  const valoresEncontrados =
+    precoTexto.match(/R\$\s*([0-9.]+(?:,[0-9]{2})?)/g) || [];
+
   const ultimoValor = valoresEncontrados.length
     ? valoresEncontrados[valoresEncontrados.length - 1]
     : precoTexto;
+
   const precoLimpo = ultimoValor
     .replace("R$", "")
     .replace(/\./g, "")
     .replace(",", ".")
     .trim();
+
   let preco = parseFloat(precoLimpo);
 
   let achou = false;
+
   for (let i = 0; i < carrinho.length; i++) {
-    if (carrinho[i].nome === nome && carrinho[i].marca === marca) {
+    if (
+      carrinho[i].nome === nome &&
+      carrinho[i].marca === marca
+    ) {
       carrinho[i].quantidade += 1;
       achou = true;
       break;
@@ -179,11 +206,14 @@ function adicionarProduto(nome, marca, precoTexto) {
       preco: preco,
       quantidade: 1,
     };
+
     carrinho.push(novoItem);
   }
+
   salvarCarrinho();
 
   const overlay = document.getElementById("janela-carrinho");
+
   if (overlay && overlay.classList.contains("carrinho__overlay--aberto")) {
     desenharCarrinho();
   } else {
@@ -193,9 +223,11 @@ function adicionarProduto(nome, marca, precoTexto) {
 
 function mostrarToast(mensagem) {
   let toast = document.getElementById("toast__carrinho");
+
   if (!toast) {
     toast = document.createElement("div");
     toast.id = "toast__carrinho";
+
     toast.style.position = "fixed";
     toast.style.zIndex = "1000";
     toast.style.left = "50%";
@@ -210,6 +242,7 @@ function mostrarToast(mensagem) {
     toast.style.opacity = "0";
     toast.style.pointerEvents = "none";
     toast.style.transition = "opacity 180ms ease, transform 180ms ease";
+
     document.body.appendChild(toast);
   }
 
@@ -218,6 +251,7 @@ function mostrarToast(mensagem) {
   toast.style.transform = "translateX(-50%) translateY(-4px)";
 
   if (toast._timer) clearTimeout(toast._timer);
+
   toast._timer = setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateX(-50%) translateY(0)";
@@ -226,12 +260,14 @@ function mostrarToast(mensagem) {
 
 function aumentar(posicao) {
   carrinho[posicao].quantidade += 1;
+
   salvarCarrinho();
   desenharCarrinho();
 }
 
 function diminuir(posicao) {
   carrinho[posicao].quantidade -= 1;
+
   if (carrinho[posicao].quantidade === 0) {
     carrinho.splice(posicao, 1);
   }
@@ -242,11 +278,18 @@ function diminuir(posicao) {
 
 function limparCarrinho() {
   carrinho = [];
+
   salvarCarrinho();
   desenharCarrinho();
 }
 
+
+// ==========================================
+// FINALIZAR COMPRA
+// ==========================================
+
 async function finalizarCompra() {
+
   if (carrinho.length === 0) {
     mostrarToast("Seu carrinho está vazio");
     return;
@@ -254,64 +297,87 @@ async function finalizarCompra() {
 
   if (!window.usuarioLogado) {
     mostrarToast("Faça login para finalizar a compra");
+
     setTimeout(() => {
       window.location.href = "login.php";
     }, 1700);
+
     return;
   }
 
   try {
     const resposta = await fetch("finalizar_compra.php", {
       method: "POST",
+
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
+
       body: JSON.stringify({ itens: carrinho }),
     });
 
     const dados = await resposta.json();
 
     if (!resposta.ok || !dados.sucesso) {
-      throw new Error(dados.mensagem || "Não foi possível finalizar a compra.");
+      throw new Error(
+        dados.mensagem || "Não foi possível finalizar a compra."
+      );
     }
 
     carrinho = [];
+
     salvarCarrinho();
     desenharCarrinho();
     fecharCarrinho();
 
     mostrarToast("Compra finalizada com sucesso!");
+
   } catch (erro) {
     console.error("Erro ao finalizar compra:", erro);
-    mostrarToast(erro.message || "Erro ao finalizar a compra");
+
+    mostrarToast(
+      erro.message || "Erro ao finalizar a compra"
+    );
   }
 }
 
 carregarCarrinho();
 
+
+// ==========================================
+// EVENTOS DO CARRINHO
+// ==========================================
+
 (function () {
+
   const btnAbrir = document.getElementById("carrinho__abrir");
+
   if (btnAbrir) {
     btnAbrir.addEventListener("click", () => {
       const el = document.getElementById("janela-carrinho");
+
       if (el) abrirCarrinho();
     });
   }
 
-  // Botão de fechar
   const btnFechar = document.getElementById("carrinho__fechar");
+
   if (btnFechar) {
     btnFechar.addEventListener("click", () => fecharCarrinho());
   }
 
-  // Clique em Adicionar ao Carrinho
   document.addEventListener("click", (e) => {
+
     const alvo =
-      e.target && e.target.closest ? e.target.closest(".produto__btn") : null;
+      e.target && e.target.closest
+        ? e.target.closest(".produto__btn")
+        : null;
+
     if (!alvo) return;
 
     const card = alvo.closest(".produto");
+
     if (!card) return;
 
     const nome = card.querySelector(".produto__nome")?.innerText?.trim();
@@ -324,10 +390,16 @@ carregarCarrinho();
 
     adicionarProduto(nome, marca, precoTexto);
   });
+
 })();
 
-// Menu hamburguer
+
+// ==========================================
+// MENU HAMBURGUER
+// ==========================================
+
 (function () {
+
   const overlay = document.getElementById("menu-mobile__overlay");
   const btnAbrir = document.getElementById("menu-hamburguer");
   const btnFechar = document.getElementById("menu-mobile__fechar");
@@ -373,29 +445,93 @@ carregarCarrinho();
 
   if (btnCarrinho) {
     btnCarrinho.addEventListener("click", () => {
+
       fecharMenu();
+
       const el = document.getElementById("janela-carrinho");
+
       if (el) {
         abrirCarrinho();
       }
     });
   }
+
 })();
 
-// Verificação de senha
-function VerificaSenha() {
-  var senha = document.getElementById("senha").value;
-  var confirmar = document.getElementById("confirmar").value;
 
-  if (senha !== confirmar) {
-    alert("Confirmação de senha incorreta");
+// ==========================================
+// VERIFICAÇÃO DE SENHA
+// ==========================================
+
+function VerificaSenha(event) {
+
+  const campoSenha = document.getElementById("senha");
+  const campoConfirmar = document.getElementById("confirmar");
+
+  if (!campoSenha || !campoConfirmar) return true;
+
+  if (campoSenha.value !== campoConfirmar.value) {
+
+    event?.preventDefault();
+
+    campoConfirmar.setCustomValidity(
+      "As senhas não coincidem."
+    );
+
+    campoConfirmar.reportValidity();
+    campoConfirmar.focus();
+
+    return false;
   }
+
+  campoConfirmar.setCustomValidity("");
+
+  return true;
 }
 
+// Remove a mensagem de erro quando o usuário corrigir a confirmação.
+document.addEventListener("DOMContentLoaded", function () {
+
+  const campoConfirmar = document.getElementById("confirmar");
+
+  if (campoConfirmar) {
+    campoConfirmar.addEventListener("input", function () {
+      campoConfirmar.setCustomValidity("");
+    });
+  }
+
+  // Validação também no envio do formulário.
+  const campoSenha = document.getElementById("senha");
+
+  if (campoSenha && campoConfirmar) {
+
+    const formulario = campoSenha.closest("form");
+
+    if (formulario) {
+      formulario.addEventListener("submit", function (event) {
+
+        if (!VerificaSenha(event)) {
+          event.preventDefault();
+        }
+
+      });
+    }
+  }
+
+});
+
+
+// ==========================================
+// VITRINES DE PRODUTOS
+// ==========================================
+
 document.querySelectorAll(".vitrine").forEach((vitrine) => {
+
   const produtos = vitrine.querySelector(".produtos");
   const btnAvancar = vitrine.querySelector(".avancar");
   const btnVoltar = vitrine.querySelector(".voltar");
+
+  if (!produtos || !btnAvancar || !btnVoltar) return;
 
   btnAvancar.addEventListener("click", () => {
     produtos.scrollBy({
@@ -410,28 +546,37 @@ document.querySelectorAll(".vitrine").forEach((vitrine) => {
       behavior: "smooth",
     });
   });
+
 });
 
-// Preenchimento automático do endereço
+
+// ==========================================
+// PREENCHIMENTO AUTOMÁTICO DO ENDEREÇO PELO CEP
+// ==========================================
+
 const inputCep = document.getElementById("cep");
 
+if (inputCep) {
+
   inputCep.addEventListener("blur", function () {
+
     let cep = inputCep.value;
 
-    // Remove tudo que não for número
     cep = cep.replace(/\D/g, "");
 
-    // Verifica se tem exatamente 8 números
     if (cep.length !== 8) {
       alert("CEP inválido. Digite 8 números.");
       return;
     }
 
     fetch(`https://viacep.com.br/ws/${cep}/json/`)
+
       .then(function (resposta) {
         return resposta.json();
       })
+
       .then(function (dados) {
+
         if (dados.erro) {
           alert("CEP não encontrado.");
           return;
@@ -441,55 +586,94 @@ const inputCep = document.getElementById("cep");
         document.getElementById("bairro").value = dados.bairro;
         document.getElementById("cidade").value = dados.localidade;
         document.getElementById("estado").value = dados.uf;
+
       })
+
       .catch(function () {
         alert("Erro ao buscar o CEP.");
       });
+
   });
 
+}
 
+
+// ==========================================
 // MÁSCARA DE CPF
+// ==========================================
+
 const cpf = document.getElementById("cpf");
+
 if (cpf) {
-    cpf.addEventListener("input", function () {
-        let valor = this.value.replace(/\D/g, "");
-        valor = valor.substring(0, 11);
-        valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
-        valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
-        valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-        this.value = valor;
-    });
+
+  cpf.addEventListener("input", function () {
+
+    let valor = this.value.replace(/\D/g, "");
+
+    valor = valor.substring(0, 11);
+    valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+    valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+    valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+    this.value = valor;
+
+  });
 
 }
 
+
+// ==========================================
 // MÁSCARA DE CEP
+// ==========================================
+
 const cep = document.getElementById("cep");
+
 if (cep) {
-    cep.addEventListener("input", function () {
-        let valor = this.value.replace(/\D/g, "");
-        valor = valor.substring(0, 8);
-        valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
-        this.value = valor;
-    });
+
+  cep.addEventListener("input", function () {
+
+    let valor = this.value.replace(/\D/g, "");
+
+    valor = valor.substring(0, 8);
+    valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
+
+    this.value = valor;
+
+  });
+
 }
 
-// MÁSCARA DE TELEFONE
-const telefone = document.getElementById("telefone");
-if (telefone) {
-    telefone.addEventListener("input", function () {
-        let valor = this.value.replace(/\D/g, "");
-        valor = valor.substring(0, 11);
-        if (valor.length <= 10) {
-            // Telefone fixo
-            valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
-            valor = valor.replace(/(\d{4})(\d)/, "$1-$2");
-        } else {
-            // Celular
-            valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
-            valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
-        }
-        this.value = valor;
 
-    });
+// ==========================================
+// MÁSCARA DE TELEFONE
+// ==========================================
+
+const telefone = document.getElementById("telefone");
+
+if (telefone) {
+
+  telefone.addEventListener("input", function () {
+
+    let valor = this.value.replace(/\D/g, "");
+
+    valor = valor.substring(0, 11);
+
+    if (valor.length <= 10) {
+
+      // Telefone fixo
+      valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
+      valor = valor.replace(/(\d{4})(\d)/, "$1-$2");
+
+    } else {
+
+      // Celular
+      valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
+      valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
+
+    }
+
+    this.value = valor;
+
+  });
 
 }

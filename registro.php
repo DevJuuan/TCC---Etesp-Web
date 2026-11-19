@@ -106,22 +106,22 @@ unset($_SESSION['registro_erro']);
                     
                     echo "<div class='contato__campo'>";
                     echo "<label for='cidade'>Cidade</label>";
-                    echo "<input type='text' id='cidade' name='cidade'/>";
+                    echo "<input class='campo-automatico' type='text' id='cidade' name='cidade'readonly/>";
                     echo "</div>";
 
                     echo "<div class='contato__campo'>";
                     echo "<label for='estado'>Estado</label>";
-                    echo "<input type='text' id='estado' name='estado'/>";
+                    echo "<input class='campo-automatico' type='text' id='estado' name='estado' readonly/>";
                     echo "</div>";
 
                     echo "<div class='contato__campo'>";
                     echo "<label for='bairro'>Bairro</label>";
-                    echo "<input type='text' id='bairro' name='bairro'/>";
+                    echo "<input class='campo-automatico' type='text' id='bairro' name='bairro' readonly/>";
                     echo "</div>";
 
                     echo "<div class='contato__campo'>";
                     echo "<label for='rua'>Rua</label>";
-                    echo "<input type='text' id='rua' name='rua'/>";
+                    echo "<input class='campo-automatico' type='text' id='rua' name='rua' readonly/>";
                     echo "</div>";  
                     
                     echo "<div class='contato__campo'>";
